@@ -111,8 +111,8 @@ int combuf_start;     // start of command buffer
  
 static uint8_t websrvip[4] = {173,203,98,29};  // www.pachube.com
 
-// Uncomment the next line to define the 'httppath' and add your feed number key by replacing "my_pachube_feed_number" with your feed id 
-#define HTTPPATH "/api/9675.csv"      // The feed
+// Uncomment the next line to define the 'httppath' and add your feed number key by replacing "my_pachube_feed_id" with your feed id e.g. "/api/9675.csv"
+#define HTTPPATH "/api/my_pachube_feed_id.csv"      // The feed
   
 EtherShield es=EtherShield();
  
