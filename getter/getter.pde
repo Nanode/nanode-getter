@@ -2,13 +2,14 @@
 // These commands are used to control servo pointer angle and RGB lamp PWM channels
 
 #include "EtherShield.h"
+#include <EEPROM.h>
 
 //  for the serial command interpreter
 
 long previousMillis = 0;        // will store last time serial output was updated
 int interval = 1000;           // interval at which to generate serial output (milliseconds)
 
-int incomingByte = 0;
+int incomingByte = 0;	// for incoming serial data
 boolean dataReady = false;
 int i = 0;
 int len = 4;                      // expected string is 6 bytes long
@@ -199,9 +200,6 @@ void browserresult_callback(uint8_t statuscode,uint16_t datapos){
  
 void setup(){
   Serial.begin(9600);
-  Serial.println("Pachube Command Get Example Feed 9675");
-  Serial.println("Please Wait 30 secs for Pachube Connection");
-  
   pinMode(RedPin, OUTPUT);
   pinMode(GreenPin, OUTPUT);
   pinMode(BluePin, OUTPUT);
@@ -212,6 +210,109 @@ void setup(){
     
   EWservo.attach(4);          // Attach the East-West tracking servo to digital 10
   EWservo.write(90);           // set servo to mid-point
+
+  Serial.println("_______ ___    ___ ____ __/\\__ ___    ___  ______     ______     _______ _");
+  Serial.println("       /   |  /  //    |*   * /   |  /  /,   ___ \\   /  __  \\   /      /"); 
+  Serial.println("_____ /    | /  //     |/,'.\\/    | /  //  ;    \\ \\ /  /  \\  \\ /   ___/ __");
+  Serial.println("     /     |/  //  /|  |    /     |/  //  /    /  //  /   /  //      /   ");
+  Serial.println("___ /  /|     //  /_|  |   /  /|     //  /    /  //  /   /  //   ___/ ____");
+  Serial.println("   /  / |    //  ___   |  /  / |    / \\  \\___,  //  /__~  ~ /      /     ");
+  Serial.println("_ /__/  |___//__/   |__| /__/  |___/   \\______, /_______ ~ /______/ ______");
+  Serial.println("                         Knowing is half the battle.");
+  Serial.println("");
+  Serial.println("Pachube Command Get Example Feed: ");
+  Serial.println("Please Wait 30 secs for Pachube Connection");  
+  Serial.println("");
+  Serial.println("/---------------------------\\");
+  Serial.println("| Nanode configuration menu |");
+  Serial.println("\\---------------------------/");
+  Serial.println("0-Nanode MAC"); //get 6 hex chars 00 to FF
+  Serial.println("1-Nanode IP"); //get 4 intger segments client ip address "myip[4]"
+  Serial.println("2-Gateway IP"); //get 4 intger segments gateway ip address. "qwip[4]"
+  Serial.println("3-Webserver IP"); //get 4 intger segments webserver ip address. "wsip[4]"
+  Serial.println("4-API Key"); //enter your Pachube API Key string here.
+  Serial.println("5-Feed ID"); //enter your Pachube Feed ID here.
+  Serial.println("6-Mode");
+  Serial.println("7-Display Config");
+  Serial.println("8-Display Mode Pinout");
+  Serial.println("");
+  Serial.println("Please enter your choice:");
+
+                        int mem_index = 0;
+                        int segment_index = 0;
+                        uint8_t mem_mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x28};
+                        unsigned int mem_PORT = 80;
+  while(Serial.available()==0){}
+		incomingByte = Serial.read();
+		switch (incomingByte){
+		case '0':
+                        Serial.println("Please enter the Nanode MAC Address: ");
+                          for (mem_index = 0; mem_index < 6; mem_index++)
+                            if (segment_index < 6)
+                            {
+                            EEPROM.write(mem_index, mem_mymac[segment_index]);
+                            segment_index++;
+                            break;
+                            }
+                        Serial.println("Mac adress writting successfully");   
+			break;
+		case '1':
+                        Serial.println("Please enter the Nanode IP Address: ");
+			break;
+		case '2':
+                        Serial.println("Please enter the Gateway IP Address: ");
+                        break;
+		case '3':
+                        Serial.println("Please enter the Webserver IP Address: ");
+                        break;
+		case '4':
+                        Serial.println("Please enter the API Key: ");
+			break;
+		case '5':
+                        Serial.println("Please enter the Feed ID: ");
+                        break;
+		case '6':				
+                        Serial.println("Please choose the Mode: ");
+			break;
+		case '7':				
+                        Serial.println("Here is the current Nanode Config: ");
+			break;
+		case '8':
+/*
+  Serial.println("               /\\      /\\");
+  Serial.println("             _/  \\____/  \\_");
+  Serial.println("            /              \\");
+  Serial.println("           /   O        O   \\");
+  Serial.println("         =|        __       |=");
+  Serial.println("         =|        \\/       |=");
+  Serial.println("       ____\\       ||       /_____");
+  Serial.println("DIG:  |     \\_____/  \\_____/      | ANA IN:");
+  Serial.println(" | _                       _ |");
+  Serial.println("RX [00]         ||0|                     |0||   [05]");
+  Serial.println("   TX [01]         ||0|  _._._._._._._._.   |0||   [04]");
+  Serial.println("      [02]         ||0| |_ _ _ _ _ _ _ _ |  |0||   [03]");
+  Serial.println("  PWM [03] RGB LED ||0|   ' ' ' ' ' ' ' '   |0||   [02]");
+  Serial.println("      [04] METER   ||0| =  _    ._._._._.   |0||   [01]");
+  Serial.println("  PWM [05] RGB LED ||0| - |0|  | _ _ _ _ |  |0||   [00]");
+  Serial.println("  PWM [06] RGB LED ||0|    -    ' ' ' ' '    - |");
+  Serial.println("      [07]         ||0|  _                  |0||  [Vin]");
+  Serial.println("                   | -  | |     <>  <>  0   |0||  [GND]");
+  Serial.println("      [08]         ||0| = =   [][][][][][]  |0||  [GND]");
+  Serial.println("  PWM [09]         ||0| | |  __________     |0||   [5V]");
+  Serial.println("  PWM [10]         ||0| = = | ******** |    |0||  [3V3]");
+  Serial.println("  PWM [11]         ||0| | | | -------- |    |0||[RESET]");
+  Serial.println("      [12]         ||0| = = ||        || O   - |");
+  Serial.println("      [13]         ||0| | | ||        ||       |");
+  Serial.println("      [GND]        ||0| = = ||        || O     |");
+  Serial.println("      [AREF]       ||0|  -  ||        ||       |");
+  Serial.println("                   |_-______||        ||_____-_|");
+  Serial.println("                            ||________||		");
+  */
+                        break;
+                        
+                default:
+                        break;
+		}
   
   /*initialize enc28j60*/
   es.ES_enc28j60Init(mymac);
@@ -222,7 +323,6 @@ void setup(){
   // init the web client:
   es.ES_client_set_gwip(gwip);  // e.g internal IP of dsl routeru
   
- 
   es.ES_client_set_wwwip(websrvip);  // target web server
  
 }
