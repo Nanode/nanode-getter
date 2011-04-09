@@ -240,6 +240,8 @@ void setup(){
 
                         int mem_index = 0;
                         int segment_index = 0;
+                        int mem_address = 0;
+                        int mem_value = 0;
                         uint8_t mem_mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x28};
                         unsigned int mem_PORT = 80;
   while(Serial.available()==0){}
@@ -254,7 +256,7 @@ void setup(){
                             segment_index++;
                             break;
                             }
-                        Serial.println("Mac adress writting successfully");   
+                        Serial.println("Mac address stored :)");   
 			break;
 		case '1':
                         Serial.println("Please enter the Nanode IP Address: ");
@@ -275,8 +277,21 @@ void setup(){
                         Serial.println("Please choose the Mode: ");
 			break;
 		case '7':				
-                        Serial.println("Here is the current Nanode Config: ");
-			break;
+                        Serial.println("Here is the current Nanode config: ");
+                          //EEPROM.read(address)
+                          mem_value = EEPROM.read(mem_address);
+                          Serial.print(mem_address);
+                          Serial.print("\t");
+                          Serial.print(mem_value);
+                          Serial.println();
+                          mem_address++;
+                          if (mem_address == 1024)
+                          {
+                            mem_address = 0;
+                            break;
+                          }
+                          delay(500);
+                          break;
 		case '8':
 /*
   Serial.println("               /\\      /\\");
