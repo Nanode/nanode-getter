@@ -1,7 +1,7 @@
 // This routine subscribes to Pachube Feed 9675 and retrieves the 6 numerical commands that have been left there.
 // These commands are used to control servo pointer angle and RGB lamp PWM channels.
 
-#include "EtherShield.h"
+#include <EtherShield.h>
 #include <EEPROM.h>
 #include <Flash.h>
 
