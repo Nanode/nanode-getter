@@ -1,27 +1,93 @@
-// This routine subscribes to Pachube Feed 9675 and retrieves the 6 numerical command that have been left there
-// These commands are used to control servo pointer angle and RGB lamp PWM channels
+// This routine subscribes to Pachube Feed 9675 and retrieves the 6 numerical commands that have been left there.
+// These commands are used to control servo pointer angle and RGB lamp PWM channels.
 
 #include "EtherShield.h"
 #include <EEPROM.h>
+#include <Flash.h>
 
+//Ascii header and serial menu
+FLASH_STRING(nanode_header, "_______ ___    ___ ____ __/\\__ ___    ___  ______     ______     _______ _\n"
+"       /   |  /  //    |*   * /   |  /  /,   ___ \\   /  __  \\   /      /\n"
+"_____ /    | /  //     |/,'.\\/    | /  //  ;    \\ \\ /  /  \\  \\ /   ___/ __\n"
+"     /     |/  //  /|  |    /     |/  //  /    /  //  /   /  //      /   \n"
+"___ /  /|     //  /_|  |   /  /|     //  /    /  //  /   /  //   ___/ ____\n"
+"   /  / |    //  ___   |  /  / |    / \\  \\___,  //  /__~  ~ /      /     \n"
+"_ /__/  |___//__/   |__| /__/  |___/   \\______, /_______ ~ /______/ ______\n"
+"                         Knowing is half the battle.\n");
+
+FLASH_STRING(nanode_standby, 
+"Pachube Command Get Example Feed: \n"
+"Please Wait 30 secs for Pachube Connection\n");
+
+FLASH_STRING(nanode_menu, "/---------------------------\\\n"
+"| Nanode configuration menu |\n"
+"\\---------------------------/\n"
+"0-Nanode MAC\n" 			//get 6 hex chars 00 to FF
+"1-Nanode IP\n" 			//get 4 intger segments client ip address "myip[4]"
+"2-Gateway IP\n" 			//get 4 intger segments gateway ip address. "qwip[4]"
+"3-Webserver IP\n" 		//get 4 intger segments webserver ip address. "wsip[4]"
+"4-API Key\n" 			//enter your Pachube API Key string here.
+"5-Feed ID\n" 			//enter your Pachube Feed ID here.
+"6-Mode\n"
+"7-Display Config\n"
+"8-Display Mode Pinout\n"
+"9-Display RAM Usage\n"
+"Please enter your choice:");
+
+FLASH_STRING(nanode_pinout,
+"                             /\\      /\\\n"
+"                           _/  \\____/  \\_\n"
+"                          /              \\\n"
+"                         /   O        O   \\\n"
+"                       =|        __       |=\n"
+"                       =|        \\/       |=\n"
+"                    ____\\       ||       /_____\n"
+"  DIGITAL:         |     \\_____/  \\_____/      |  ANALOG:\n"
+"                   | _                       _ |\n"
+"  RX  [00]         ||0|                     |0||    [05]\n"
+"  TX  [01]         ||0|  _._._._._._._._.   |0||    [04]\n"
+"      [02]         ||0| |_ _ _ _ _ _ _ _ |  |0||    [03]\n"
+"  PWM [03] RGB LED ||0|   ' ' ' ' ' ' ' '   |0||    [02]\n"
+"      [04] METER   ||0| =  _    ._._._._.   |0||    [01]\n"
+"  PWM [05] RGB LED ||0| - |0|  | _ _ _ _ |  |0||    [00]\n"
+"  PWM [06] RGB LED ||0|    -    ' ' ' ' '    - |\n"
+"      [07]         ||0|  _                  |0||   [Vin]\n"
+"                   | -  | |     <>  <>  0   |0||   [GND]\n"
+"      [08]         ||0| = =   [][][][][][]  |0||   [GND]\n"
+"  PWM [09]         ||0| | |  __________     |0||    [5V]\n"
+"  PWM [10]         ||0| = = | ******** |    |0||   [3V3]\n"
+"  PWM [11]         ||0| | | | -------- |    |0|| [RESET]\n"
+"      [12]         ||0| = = ||        || O   - |\n"
+"      [13]         ||0| | | ||        ||       |\n"
+"      [GND]        ||0| = = ||        || O     |\n"
+"      [AREF]       ||0|  -  ||        ||       |\n"
+"                   |_-______||        ||_____-_|\n"
+"                            ||________||		\n");
+
+ uint8_t * heapptr, * stackptr;
+void check_mem() {
+  stackptr = (uint8_t *)malloc(4);          // use stackptr temporarily
+  heapptr = stackptr;                     // save value of heap pointer
+  free(stackptr);      // free up the memory again (sets stackptr to 0)
+  stackptr =  (uint8_t *)(SP);           // save value of stack pointer
+}
 //  for the serial command interpreter
-
 long previousMillis = 0;        // will store last time serial output was updated
-int interval = 1000;           // interval at which to generate serial output (milliseconds)
+int interval = 1000;           	// interval at which to generate serial output (milliseconds)
 
-int incomingByte = 0;	// for incoming serial data
+int incomingByte = 0;		// for incoming serial data
 boolean dataReady = false;
 int i = 0;
-int len = 4;                      // expected string is 6 bytes long
-// char inString[34];                // expected input string could be up to 33 characters long
-char sub_add_String[4];           // sub-address is up to 3 characters
+int len = 4;                    // expected string is 6 bytes long
+// char inString[34];           // expected input string could be up to 33 characters long
+char sub_add_String[4];         // sub-address is up to 3 characters
 
-char arg0_String[6];              // arg0 is up to 5 digits
-char arg1_String[6];              // arg1 is up to 5 digits
-char arg2_String[6];              // arg2 is up to 5 digits
-char arg3_String[6];              // arg3 is up to 5 digits
-char arg4_String[6];              // arg4 is up to 5 digits
-char arg5_String[6];              // arg5 is up to 5 digits
+char arg0_String[6];            // arg0 is up to 5 digits
+char arg1_String[6];            // arg1 is up to 5 digits
+char arg2_String[6];            // arg2 is up to 5 digits
+char arg3_String[6];            // arg3 is up to 5 digits
+char arg4_String[6];            // arg4 is up to 5 digits
+char arg5_String[6];            // arg5 is up to 5 digits
 
 char inByte;
 char inChar;
@@ -33,39 +99,35 @@ int temporary = 0;
 int temp2 = 0;
 int sub_add = 0;
 char arg0 = 0;
-unsigned int arg1 = 0;      // Initialise the six input arguments
+unsigned int arg1 = 0;      	// Initialise the six input arguments
 unsigned int arg2 = 0;
 unsigned int arg3 = 0;
 unsigned int arg4 = 0;
 unsigned int arg5 = 0;
-unsigned int arg6 = 0;      //arg6 is the message number - incremented each time a command is sent
+unsigned int arg6 = 0;      	//arg6 is the message number - incremented each time a command is sent
 
 int k = 0;
 int o = 0;
-int q;                     //pointers for string handling
+int q;                     	//pointers for string handling
 int r;
 int s;
 int t;
 int u;
 int n = 0;
 
-int PWMpin = 5;    // PWM output on pin 5 to MPPT active load
+int PWMpin = 5;    		// PWM output on pin 5 to MPPT active load
 int PWMval = 0;
-int LEDpin = 6;    // PWM drive to LED driver
+int LEDpin = 6;    		// PWM drive to LED driver
 int LEDval = 0;
-int FANpin = 3;    // PWM to fan speed control
+int FANpin = 3;    		// PWM to fan speed control
 int FANval = 0;
 
 int servoVal = 90;
 
-int RedPin = 3;   // PWM for RGB LEDS
+int RedPin = 3;   		// PWM for RGB LEDS
 int GreenPin = 5;
 int BluePin = 6;
  
-
-
-
-
 #include <SoftwareSerial.h>
 #include <math.h>
 
@@ -197,7 +259,7 @@ void browserresult_callback(uint8_t statuscode,uint16_t datapos){
 
  ethernet_command();            // decode and act upon the ethernet command and print to serial
 }
- 
+
 void setup(){
   Serial.begin(9600);
   pinMode(RedPin, OUTPUT);
@@ -211,32 +273,9 @@ void setup(){
   EWservo.attach(4);          // Attach the East-West tracking servo to digital 10
   EWservo.write(90);           // set servo to mid-point
 
-  Serial.println("_______ ___    ___ ____ __/\\__ ___    ___  ______     ______     _______ _");
-  Serial.println("       /   |  /  //    |*   * /   |  /  /,   ___ \\   /  __  \\   /      /"); 
-  Serial.println("_____ /    | /  //     |/,'.\\/    | /  //  ;    \\ \\ /  /  \\  \\ /   ___/ __");
-  Serial.println("     /     |/  //  /|  |    /     |/  //  /    /  //  /   /  //      /   ");
-  Serial.println("___ /  /|     //  /_|  |   /  /|     //  /    /  //  /   /  //   ___/ ____");
-  Serial.println("   /  / |    //  ___   |  /  / |    / \\  \\___,  //  /__~  ~ /      /     ");
-  Serial.println("_ /__/  |___//__/   |__| /__/  |___/   \\______, /_______ ~ /______/ ______");
-  Serial.println("                         Knowing is half the battle.");
-  Serial.println("");
-  Serial.println("Pachube Command Get Example Feed: ");
-  Serial.println("Please Wait 30 secs for Pachube Connection");  
-  Serial.println("");
-  Serial.println("/---------------------------\\");
-  Serial.println("| Nanode configuration menu |");
-  Serial.println("\\---------------------------/");
-  Serial.println("0-Nanode MAC"); //get 6 hex chars 00 to FF
-  Serial.println("1-Nanode IP"); //get 4 intger segments client ip address "myip[4]"
-  Serial.println("2-Gateway IP"); //get 4 intger segments gateway ip address. "qwip[4]"
-  Serial.println("3-Webserver IP"); //get 4 intger segments webserver ip address. "wsip[4]"
-  Serial.println("4-API Key"); //enter your Pachube API Key string here.
-  Serial.println("5-Feed ID"); //enter your Pachube Feed ID here.
-  Serial.println("6-Mode");
-  Serial.println("7-Display Config");
-  Serial.println("8-Display Mode Pinout");
-  Serial.println("");
-  Serial.println("Please enter your choice:");
+//print ascii and menu here 
+nanode_header.print(Serial); Serial.println();
+nanode_menu.print(Serial); Serial.println();
 
                         int mem_index = 0;
                         int segment_index = 0;
@@ -278,53 +317,28 @@ void setup(){
 			break;
 		case '7':				
                         Serial.println("Here is the current Nanode config: ");
-                          //EEPROM.read(address)
-                          mem_value = EEPROM.read(mem_address);
-                          Serial.print(mem_address);
-                          Serial.print("\t");
-                          Serial.print(mem_value);
-                          Serial.println();
-                          mem_address++;
-                          if (mem_address == 1024)
-                          {
-                            mem_address = 0;
-                            break;
-                          }
-                          delay(500);
-                          break;
-		case '8':
-/*
-  Serial.println("               /\\      /\\");
-  Serial.println("             _/  \\____/  \\_");
-  Serial.println("            /              \\");
-  Serial.println("           /   O        O   \\");
-  Serial.println("         =|        __       |=");
-  Serial.println("         =|        \\/       |=");
-  Serial.println("       ____\\       ||       /_____");
-  Serial.println("DIG:  |     \\_____/  \\_____/      | ANA IN:");
-  Serial.println(" | _                       _ |");
-  Serial.println("RX [00]         ||0|                     |0||   [05]");
-  Serial.println("   TX [01]         ||0|  _._._._._._._._.   |0||   [04]");
-  Serial.println("      [02]         ||0| |_ _ _ _ _ _ _ _ |  |0||   [03]");
-  Serial.println("  PWM [03] RGB LED ||0|   ' ' ' ' ' ' ' '   |0||   [02]");
-  Serial.println("      [04] METER   ||0| =  _    ._._._._.   |0||   [01]");
-  Serial.println("  PWM [05] RGB LED ||0| - |0|  | _ _ _ _ |  |0||   [00]");
-  Serial.println("  PWM [06] RGB LED ||0|    -    ' ' ' ' '    - |");
-  Serial.println("      [07]         ||0|  _                  |0||  [Vin]");
-  Serial.println("                   | -  | |     <>  <>  0   |0||  [GND]");
-  Serial.println("      [08]         ||0| = =   [][][][][][]  |0||  [GND]");
-  Serial.println("  PWM [09]         ||0| | |  __________     |0||   [5V]");
-  Serial.println("  PWM [10]         ||0| = = | ******** |    |0||  [3V3]");
-  Serial.println("  PWM [11]         ||0| | | | -------- |    |0||[RESET]");
-  Serial.println("      [12]         ||0| = = ||        || O   - |");
-  Serial.println("      [13]         ||0| | | ||        ||       |");
-  Serial.println("      [GND]        ||0| = = ||        || O     |");
-  Serial.println("      [AREF]       ||0|  -  ||        ||       |");
-  Serial.println("                   |_-______||        ||_____-_|");
-  Serial.println("                            ||________||		");
-  */
+                        //EEPROM.read(address)
+                        mem_value = EEPROM.read(mem_address);
+                        Serial.print(mem_address);
+                        Serial.print("\t");
+                        Serial.print(mem_value);
+                        Serial.println();
+                        mem_address++;
+                        if (mem_address == 1024)
+                        {
+                          mem_address = 0;
                         break;
-                        
+                        }
+                        delay(500);
+                        break;
+		case '8':
+                        nanode_pinout.print(Serial); Serial.println();
+                        break;
+                case '9':
+                        check_mem();
+                        Serial.print("\nRAM available ");
+                        Serial.println(((uint16_t)stackptr - (uint16_t)heapptr),DEC);                
+                        break;                         
                 default:
                         break;
 		}
