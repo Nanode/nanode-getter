@@ -6,7 +6,8 @@
 #include <Flash.h>
 
 //Ascii header and serial menu
-FLASH_STRING(nanode_header, "_______ ___    ___ ____ __/\\__ ___    ___  ______     ______     _______ _\n"
+FLASH_STRING(nanode_header,
+"_______ ___    ___ ____ __/\\__ ___    ___  ______     ______     _______ _\n"
 "       /   |  /  //    |*   * /   |  /  /,   ___ \\   /  __  \\   /      /\n"
 "_____ /    | /  //     |/,'.\\/    | /  //  ;    \\ \\ /  /  \\  \\ /   ___/ __\n"
 "     /     |/  //  /|  |    /     |/  //  /    /  //  /   /  //      /   \n"
@@ -19,7 +20,8 @@ FLASH_STRING(nanode_standby,
 "Pachube Command Get Example Feed: \n"
 "Please Wait 30 secs for Pachube Connection\n");
 
-FLASH_STRING(nanode_menu, "/---------------------------\\\n"
+FLASH_STRING(nanode_menu,
+"/---------------------------\\\n"
 "| Nanode configuration menu |\n"
 "\\---------------------------/\n"
 "0-Nanode MAC\n" 			//get 6 hex chars 00 to FF
@@ -62,7 +64,7 @@ FLASH_STRING(nanode_pinout,
 "      [GND]        ||0| = = ||        || O     |\n"
 "      [AREF]       ||0|  -  ||        ||       |\n"
 "                   |_-______||        ||_____-_|\n"
-"                            ||________||		\n");
+"                            ||________||	 \n");
 
  uint8_t * heapptr, * stackptr;
 void check_mem() {
@@ -141,8 +143,8 @@ Servo EWservo;
 static char statusstr[STATUS_BUFFER_SIZE];
 
  
-static uint8_t mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x28};
-static uint8_t myip[4] = {192,168,1,252};
+static uint8_t mymac[6] = {0x00,0xFF,0x48,0x11,0x2E,0x28};
+static uint8_t myip[4] = {192,168,0,103};
  
 // Default gateway. The ip address of your DSL router. It can be set to the same as
 // websrvip the case where there is no default GW to access the 
@@ -277,25 +279,111 @@ void setup(){
 nanode_header.print(Serial); Serial.println();
 nanode_menu.print(Serial); Serial.println();
 
+ //                       uint8_t mem_mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x28};
+/*
                         int mem_index = 0;
                         int segment_index = 0;
                         int mem_address = 0;
                         int mem_value = 0;
                         uint8_t mem_mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x28};
                         unsigned int mem_PORT = 80;
+                        */
+int addr = 0;
+char val = 0x00;
+byte value;
+
   while(Serial.available()==0){}
 		incomingByte = Serial.read();
 		switch (incomingByte){
 		case '0':
-                        Serial.println("Please enter the Nanode MAC Address: ");
-                          for (mem_index = 0; mem_index < 6; mem_index++)
-                            if (segment_index < 6)
-                            {
-                            EEPROM.write(mem_index, mem_mymac[segment_index]);
-                            segment_index++;
-                            break;
-                            }
-                        Serial.println("Mac address stored :)");   
+  // need to divide by 4 because analog inputs range from
+  // 0 to 1023 and each byte of the EEPROM can only hold a
+  // value from 0 to 255.
+//  int val = analogRead(0) / 4;
+  
+  // write the value to the appropriate byte of the EEPROM.
+  // these values will remain there when the board is
+  // turned off.
+  EEPROM.write(addr, val);
+
+
+/*
+http://arduino.cc/en/Reference/EEPROMWrite
+An EEPROM write takes 3.3 ms to complete. The EEPROM memory has a specified life of 100,000 write/erase cycles, so you may need to be careful about how often you write to it.
+http://www.arduino.cc/en/Reference/Delay
+  delay(5); //this should be long enough for the device to write the value
+*/
+
+  delay(100);
+  
+  value = EEPROM.read(addr);
+
+  // advance to the next address.  there are 512 bytes in 
+  // the EEPROM, so go back to 0 when we hit 512.
+  addr += 1;
+  val += 1;
+  if (addr == 512)
+    addr = 0;
+  
+  Serial.print(addr);
+  Serial.print("\t");
+  Serial.print(value, HEX);
+  Serial.println();
+  
+  // there are only 512 bytes of EEPROM, from 0 to 511, so if we're
+  // on address 512, wrap around to address 0
+  if (addr == 512)
+    addr = 0;
+/*
+Serial.print("Before: ");
+for (addr = 0; addr<6; addr++)
+{
+value = EEPROM.read(addr);
+  Serial.print(addr);
+  Serial.print("\t");
+  Serial.print(value, HEX);
+}
+
+val = 0x54;
+EEPROM.write(addr, val);
+delay(10);
+addr += 1;
+
+val = 0x55;
+EEPROM.write(addr, val);
+delay(10);
+addr += 1;
+
+val = 0x58;
+EEPROM.write(addr, val);
+delay(5);
+addr += 1;
+
+val = 0x10;
+EEPROM.write(addr, val);
+delay(5);
+addr += 1;
+
+val = 0x00;
+EEPROM.write(addr, val);
+delay(5);
+addr += 1;
+
+val = 0x28;
+EEPROM.write(addr, val);
+delay(5);
+addr += 1;
+
+addr=0;
+Serial.print("\nAfter: ");
+for (addr = 0; addr<6; addr++)
+{
+value = EEPROM.read(addr);
+  Serial.print(addr);
+  Serial.print("\t");
+  Serial.print(value, HEX);
+}
+*/
 			break;
 		case '1':
                         Serial.println("Please enter the Nanode IP Address: ");
@@ -318,7 +406,7 @@ nanode_menu.print(Serial); Serial.println();
 		case '7':				
                         Serial.println("Here is the current Nanode config: ");
                         //EEPROM.read(address)
-                        mem_value = EEPROM.read(mem_address);
+           /*             mem_value = EEPROM.read(mem_address);
                         Serial.print(mem_address);
                         Serial.print("\t");
                         Serial.print(mem_value);
@@ -331,6 +419,7 @@ nanode_menu.print(Serial); Serial.println();
                         }
                         delay(500);
                         break;
+          */
 		case '8':
                         nanode_pinout.print(Serial); Serial.println();
                         break;
