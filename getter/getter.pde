@@ -143,8 +143,8 @@ Servo EWservo;
 static char statusstr[STATUS_BUFFER_SIZE];
 
  
-static uint8_t mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x28};
-static uint8_t myip[4] = {192,168,1,252};
+static uint8_t mymac[6] = {0x00,0xFF,0x48,0x11,0x2E,0x28};
+static uint8_t myip[4] = {192,168,0,103};
  
 // Default gateway. The ip address of your DSL router. It can be set to the same as
 // websrvip the case where there is no default GW to access the 
